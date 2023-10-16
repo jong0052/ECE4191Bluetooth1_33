@@ -7,7 +7,7 @@ import math
 from multiprocessing import *
 from multiprocessing.managers import BaseManager, NamespaceProxy
 
-port = 55
+port = 1
 
 class BluetoothMPManager:
     def __init__(self):
@@ -71,11 +71,11 @@ def get_mac_address() -> str:
 # Client: Acts as the sender.
 def bluetooth_client(bluetooth_manager: BluetoothMPManager):
     s = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
-    host_address = "d8:3a:dd:21:86:59" #Fill in host mac address here
+    host_address = "D8:3A:DD:21:87:5E" #Fill in host mac address here
     # address_other = "D8:3A:DD:21:80:55"
     s.connect((host_address,port))
     while(1):
-        our_data = BluetoothData(bluetooth_manager.our_robot_state, bluetooth_manager.our_robot_pose, bluetooth_manager.our_robot_goal)
+        our_data = BluetoothData(bluetooth_manager.our_robot_state, [0,0,0], bluetooth_manager.our_robot_goal)
         our_json_data = our_data.to_json()
 
         s.send(bytes(our_json_data,'UTF-8'))
@@ -89,8 +89,8 @@ def bluetooth_client(bluetooth_manager: BluetoothMPManager):
 
         bluetooth_manager.other_robot_state = other_data.robot_state
         bluetooth_manager.other_robot_pose[:] = []
-        bluetooth_manager.other_robot_pose.extend(other_data.robot_state)
-        bluetooth_manager.other_robot_goal = other_data.robot_state
+        bluetooth_manager.other_robot_pose.extend(other_data.robot_pose)
+        bluetooth_manager.other_robot_goal = other_data.robot_goal
 
         time.sleep(1)
 
@@ -105,6 +105,7 @@ def bluetooth_server(bluetooth_manager: BluetoothMPManager):
     s.listen(1)
 
     while True:
+        print("Hosting")
         try:
             client, address = s.accept()
             while 1:
@@ -143,12 +144,14 @@ def random_update(bluetooth_manager: BluetoothMPManager):
         time.sleep(5)
 
 if __name__ == "__main__":
+    print(get_mac_address())
+    
     BaseManager.register('BluetoothMPManager', BluetoothMPManager, TestProxy)
     manager = BaseManager()
     manager.start()
     bluetooth_manager = manager.BluetoothMPManager()
 
-    host = True
+    host = False
 
     if (host):
         procHost = Process(target=bluetooth_server,args=(bluetooth_manager,))
